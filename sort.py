@@ -85,12 +85,17 @@ class KalmanBoxTracker(object):
   """
     count = 0
 
-    def __init__(self, bbox, label):
+    def __init__(self, bbox, label, track_id=-1):
         """
     Initialises a tracker using initial bounding box.
     """
         #define constant velocity model
         self.label = label
+        if track_id == -1:
+            self.id = KalmanBoxTracker.count
+            KalmanBoxTracker.count += 1
+        else:
+            self.id = track_id
         self.kf = KalmanFilter(dim_x=7, dim_z=4)
         self.kf.F = np.array([[1, 0, 0, 0, 1, 0, 0], [0, 1, 0, 0, 0, 1, 0],
                               [0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 0, 0, 0],
@@ -109,8 +114,6 @@ class KalmanBoxTracker(object):
 
         self.kf.x[:4] = convert_bbox_to_z(bbox)
         self.time_since_update = 0
-        self.id = KalmanBoxTracker.count
-        KalmanBoxTracker.count += 1
         self.history = []
         self.hits = 0
         self.hit_streak = 0
@@ -200,7 +203,7 @@ class Sort(object):
         self.trackers = []
         self.frame_count = 0
 
-    def update(self, dets, labels=None):
+    def update(self, dets, labels=None, ids=None):
         """
     Params:
       dets - a numpy array of detections in the format [[x1,y1,x2,y2,score],[x1,y1,x2,y2,score],...]
@@ -233,7 +236,7 @@ class Sort(object):
 
         #create and initialise new trackers for unmatched detections
         for i in unmatched_dets:
-            trk = KalmanBoxTracker(dets[i, :], labels[i])
+            trk = KalmanBoxTracker(dets[i, :], labels[i], ids[i])
             self.trackers.append(trk)
         i = len(self.trackers)
         for trk in reversed(self.trackers):
